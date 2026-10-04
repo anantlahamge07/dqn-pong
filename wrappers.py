@@ -20,6 +20,14 @@ class BufferWrapper(gym.ObservationWrapper):
         self.buffer = collections.deque(maxlen=n_steps)
 
     def reset(self):
-        pass
+        # initially filling the buffer with the lowest possible values until the last value
+        for _ in range(self.buffer.maxlen - 1):
+            self.buffer.append(self.env.observation_space.low)
+        obs, info = self.env.reset()
+        return self.observation(obs), info
 
-    def observation(self, obs: np.ndarry)
+    def observation(self, obs: np.ndarray) -> np.ndarray:
+        # appending the given observation to our buffer
+        self.buffer.append(obs)
+        # returning a concatenated array
+        return np.concatenate(self.buffer)
