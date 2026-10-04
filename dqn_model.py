@@ -18,6 +18,7 @@ class DQN(nn.Module):
             )
         
         # just to get the input size for the linear network in the 2nd part
+        # we are achieving this by passing a fake input (a tensor containing only zeros)
         size = self.conv(torch.zeros(1, *input_shape)).size()[-1]
         # part 2: the linear network
         self.fc = nn.Sequential(
