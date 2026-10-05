@@ -23,7 +23,7 @@ Action = int
 BatchTensors = tt.Tuple[
     torch.ByteTensor,    # current state
     torch.LongTensor,    # actions
-    torch.FloatTensor,        # rewards
+    torch.FloatTensor,   # rewards
     torch.BoolTensor,    # done || truncated
     torch.ByteTensor     # next state
     ]
@@ -95,5 +95,12 @@ class Agent:
         return episode_reward
 
 
+def batch_to_tensor(batch: tt.List[Experience], device: torch.device) -> BatchTensors:
+    pass
+
+def calculate_loss():
+    pass
 
 
+if __name__ == "__main__":
+    pass
