@@ -99,6 +99,7 @@ def batch_to_tensor(batch: tt.List[Experience], device: torch.device) -> BatchTe
     states, actions, rewards, done_flags,  new_states = [], [], [], []
     for experience in batch:
         states.append(experience.state)
+        actions.append(experience.action)
         rewards.append(experience.reward)
         done_flags.append(experience.done_trunc)
         new_states.append(experience.new_state)
@@ -110,8 +111,26 @@ def batch_to_tensor(batch: tt.List[Experience], device: torch.device) -> BatchTe
     new_states_t = torch.as_tensor(np.asarray(new_states)).to(device)
     return (states_t, actions_t, rewards_t, done_flags_t, new_states_t)
 
-def calculate_loss():
-    pass
+def calculate_loss(batch: tt.List[Experience], net: dqn_model.DQN, target_net: dqn_model.DQN, device: torch.device) -> torch.Tensor:
+    # getting the batch as different tensors using batch_to_tensor() method
+    states_t, actions_t, rewards_t, done_flags_t, new_states_t = batch_to_tensor(Experience, device)
+    # getting the Q values of the action taken
+    # here we also used actions_t.unsqueeze(-1) here because the action_t has shape x for some value x, and gather expects (x,1) as the shape of actions_t
+    state_action_values = net(states_t).gather(1, actions_t.unsqueeze(-1))
+
+    # now we will disable the calculation of gradients
+    with torch.no_grad():
+        # getting the max q values for the next states
+        next_state_values = target_net(new_states_t).max(1)[0]
+        # setting the q values 0.0 for the episodes that has been ended or truncated
+        next_state_values[done_flags_t] = 0.0
+        next_state_values = next_state_values.detach()
+
+    # the Bellman approximation
+    expected_state_action_values = hp.GAMMA * next_state_values + rewards_t
+    # returning the mean squared error loss
+    return nn.MSELoss(state_action_values, expected_state_action_values)
+
 
 
 if __name__ == "__main__":
