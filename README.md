@@ -1,63 +1,66 @@
 # DQN Pong
 
-A small, from-scratch **Deep Q-Network (DQN)** project for learning to play Atari Pong from pixel observations. The project is written in Python with PyTorch and Gymnasium, and follows the classic DQN approach: a convolutional Q-network, frame stacking, and an experience replay buffer.
+A small, from-scratch **Deep Q-Network (DQN)** project for Atari Pong. It uses PyTorch for the convolutional Q-network and Gymnasium for the environment, with Atari preprocessing, stacked image observations, and an experience replay buffer.
 
-> **Project status:** this repository is a work in progress. It contains the model and several training components, but it does not yet include the optimization/target-network training loop or a command-line entry point. As a result, there is not currently a complete command for training an agent end to end.
+> **Status: work in progress.** The repository contains core DQN components and a partial loss calculation, but the training loop and executable entry point are not complete. Several implementation issues also need to be fixed before the current code can train end to end.
 
-## What is included
+## Project contents
 
-- `dqn_model.py` — convolutional neural network that maps stacked image frames to action-value (Q) estimates.
-- `wrappers.py` — Atari preprocessing and observation transforms: channel-first image layout and four-frame stacking.
-- `ExperienceBuffer.py` — bounded replay buffer for storing and sampling transitions.
-- `dqn_pong.py` — transition data structure and an agent helper that selects actions and steps the environment.
-- `hyperparameters.py` — default environment name and DQN hyperparameters.
+| File | Purpose |
+| --- | --- |
+| `dqn_model.py` | Convolutional Q-network that predicts a value for each available action from image observations. |
+| `wrappers.py` | Atari preprocessing, conversion to channel-first image layout, and four-frame observation stacking. |
+| `ExperienceBuffer.py` | Bounded replay memory with random transition sampling. |
+| `dqn_pong.py` | `Experience` data structure, epsilon-greedy environment interaction, batch-to-tensor conversion, and a partial DQN loss helper. |
+| `hyperparameters.py` | Environment ID and default replay, optimization, target-sync, and exploration settings. |
 
-## How it is intended to work
+## DQN outline
 
-The agent observes a stack of four preprocessed Pong frames. The DQN estimates a Q-value for each available action; during interaction, the agent uses epsilon-greedy action selection to balance exploration and exploitation. Each transition is added to replay memory, from which batches can be sampled for learning.
+The intended agent observes four stacked frames and uses a convolutional network to estimate action values. It selects actions with an epsilon-greedy policy, stores transitions in replay memory, and is designed to learn from random batches while using a target network for next-state values. Hyperparameters for this process are defined in `hyperparameters.py`.
 
-The configured defaults include a replay capacity of 10,000 transitions, a batch size of 32, a discount factor of 0.99, and a linearly decaying exploration rate. The training loop that would use these settings has not been implemented yet.
+The repository does not yet connect these pieces in a training loop. It also does not currently provide checkpoint saving/loading or an evaluation script.
 
 ## Requirements
 
-The source imports the following packages:
+The source imports:
 
 - Python 3
 - [PyTorch](https://pytorch.org/)
 - [Gymnasium](https://gymnasium.farama.org/)
-- [Stable-Baselines3](https://stable-baselines3.readthedocs.io/) (used here for its Atari wrapper utilities)
+- [Stable-Baselines3](https://stable-baselines3.readthedocs.io/) for Atari wrapper utilities
 - NumPy
-- TensorBoard (imported by the agent module)
+- TensorBoard
 
-Install the Python packages in your environment with:
+Install the Python dependencies with:
 
 ```bash
 python -m pip install torch gymnasium stable-baselines3 numpy tensorboard
 ```
 
-Atari environments also require the appropriate Atari/ALE support and ROMs for your Gymnasium setup. Consult the [Gymnasium Atari documentation](https://gymnasium.farama.org/environments/atari/) for installation instructions. The configured environment ID is `PongNoFrameskip-v4`; environment IDs and Atari setup can vary by Gymnasium/ALE version.
+An Atari-capable Gymnasium installation and the required ROMs are also needed to create the Pong environment. Follow the [Gymnasium Atari setup guide](https://gymnasium.farama.org/environments/atari/). The configured environment ID is `PongNoFrameskip-v4`; the available ID may differ across Gymnasium/ALE versions.
 
 ## Running
 
-There is no end-to-end training command at this stage. `dqn_pong.py` currently defines helper classes only; it does not parse arguments, create the environment, run optimization, save a model, or launch evaluation. A training loop and an executable entry point are needed before the agent can be trained from the command line.
+There is no supported end-to-end run command yet. Running `dqn_pong.py` does not start training: its `__main__` block is currently empty. Before use as a trainer, the project needs a complete training loop and fixes to the current partial implementation, including the replay-buffer import dependency and the loss/episode-reward calculations.
 
-## Configuration
+## Default configuration
 
-Defaults are defined in `hyperparameters.py`:
+Values in `hyperparameters.py`:
 
-| Setting | Default | Purpose |
-| --- | ---: | --- |
-| Environment | `PongNoFrameskip-v4` | Atari Pong environment ID |
-| Discount factor (`GAMMA`) | `0.99` | Future reward discount |
-| Batch size | `32` | Transitions sampled per update |
-| Replay capacity | `10,000` | Maximum transitions retained |
-| Learning rate | `0.0001` | Optimizer learning rate |
-| Replay start size | `10,000` | Intended warm-up before training |
-| Target sync interval | `1,000` frames | Intended target-network update frequency |
-| Epsilon | `1.0` to `0.01` | Exploration schedule over 150,000 frames |
+| Setting | Default |
+| --- | ---: |
+| Environment | `PongNoFrameskip-v4` |
+| Discount factor (`GAMMA`) | `0.99` |
+| Batch size | `32` |
+| Replay capacity | `10,000` transitions |
+| Learning rate | `0.0001` |
+| Replay warm-up size | `10,000` transitions |
+| Target network sync interval | `1,000` frames |
+| Epsilon schedule | `1.0` to `0.01` over `150,000` frames |
+| Mean-reward threshold | `19` |
 
-These include settings for a planned training loop; not all are consumed by the current code.
+These settings describe the planned training process; not all are used by the current code yet.
 
 ## License
 
-This project is distributed under the MIT License. See [LICENSE](LICENSE).
+Released under the MIT License. See [LICENSE](LICENSE).
