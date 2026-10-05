@@ -1,4 +1,5 @@
-# defining the hyperparameters
+
+# the default environment name
 DEFAULT_ENV_NAME = "PongNoFrameskip-v4"
 # reward bound for the last 100 episodes to stop training
 MEAN_REWARD_BOUND = 19

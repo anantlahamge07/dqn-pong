@@ -58,6 +58,7 @@ class main():
             reward = agent._step(net, device, epsilon)
             if reward is not None:
                 speed = (frame_counter - ts_frame)/(time.time() - ts)
+                ts_frame = frame_counter
                 # appending the total accumulated reward from the whole episode to the  total rewards buffer
                 total_rewards.append(reward)
                 ts = time.time()
