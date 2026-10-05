@@ -9,7 +9,7 @@ import torch.optim as optim
 import numpy as np
 import time
 import wrappers
-import ExperienceBuffer
+from ExperienceBuffer import ExperienceBuffer
 from torch.utils.tensorboard.writer import SummaryWriter
 
 
@@ -19,7 +19,7 @@ class main():
     # The training loop
     if __name__ == "__main__":
         parser = argparse.ArgumentParser()
-        parser.add_argument("--dev", default=" cpu", help="Device name, default = cpu")
+        parser.add_argument("--dev", default="cpu", help="Device name, default = cpu")
         parser.add_argument("--env", default= hp.DEFAULT_ENV_NAME, help="Environment, default = PongNoFrameskip-v4")
         args = parser.parse_args()
         device = torch.device(args.dev)
@@ -27,9 +27,9 @@ class main():
         # creating the environment using our wrappers
         env = wrappers.create_env(args.env)
         # our NN, which has to be trained
-        net = DQN(env.observation_space.shape, env.action_space.n)
+        net = DQN(env.observation_space.shape, env.action_space.n).to(device)
         # our target NN
-        target_net = DQN(env.observation_space.shape, env.action_space.n)
+        target_net = DQN(env.observation_space.shape, env.action_space.n).to(device)
 
         writer = SummaryWriter(comment= "-" + args.env)
         print(net)
@@ -63,7 +63,7 @@ class main():
                 ts = time.time()
                 # mean reward for the last 100 episodes
                 mean_reward = np.mean(total_rewards[-100:])
-                print(f"frame: {frame_counter}, episode: {len(total_rewards)},speed: {speed}, mean reward: {mean_reward}, epsilon: {epsilon}\n")
+                print(f"frame: {frame_counter}, episode: {len(total_rewards)},speed: {speed}, mean reward: {mean_reward}, epsilon: {epsilon}")
                 writer.add_scalar("epsilon", epsilon, frame_counter)
                 writer.add_scalar("reward", reward, frame_counter)
                 writer.add_scalar("mean_reward", mean_reward, frame_counter)
@@ -72,15 +72,15 @@ class main():
                 if best_mean_reward is None or mean_reward > best_mean_reward:
                     torch.save(net.state_dict(), f"{args.env}-best{mean_reward:.0f}.dat")
                     if best_mean_reward is not None:
-                        print(f"best mean reward updated {best_mean_reward} -> {mean_reward}\n")
+                        print(f"best mean reward updated {best_mean_reward} -> {mean_reward}")
                     best_mean_reward = mean_reward
 
                     if mean_reward > hp.MEAN_REWARD_BOUND:
                         print(f"solved :)\n")
-                        print(f"solved in {frame_counter} frames!\n")
+                        print(f"solved in {frame_counter} frames!")
                         break
 
-            if len(exp_buffer) < hp.REPLAY_START_SIZE:
+            if exp_buffer.len() < hp.REPLAY_START_SIZE:
                 continue
             if frame_counter % hp.SYNC_TARGET_FRAMES == 0:
                 # syncing the parameters from the main network to the the target network every SYNC_TARGET_FRAMES frames 

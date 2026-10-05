@@ -13,31 +13,12 @@ import typing as tt
 import torch
 import torch.nn as nn
 import torch.optim as optim
+from experience import Experience
+from experience import State
+from experience import Action
+from experience import BatchTensors
 
 from torch.utils.tensorboard.writer import SummaryWriter
-
-
-# here we will define now type allies
-State = np.ndarray
-Action = int
-BatchTensors = tt.Tuple[
-    torch.ByteTensor,    # current state
-    torch.LongTensor,    # actions
-    torch.FloatTensor,   # rewards
-    torch.BoolTensor,    # done || truncated
-    torch.ByteTensor     # next state
-    ]
-
-# this will be used to keep entries in the experience replay buffer
-@dataclass
-class Experience:
-    state: State
-    action: Action
-    reward: float
-    done_trunc: bool
-    new_state: State
-
-
 
 class Agent:
     def __init__(self, env: gym.Env, exp_buffer: ExperienceBuffer):
@@ -65,7 +46,7 @@ class Agent:
             # converting the current state (ndarray) to a tensor and putting it on the device, where our NN is present
             state_tensor = torch.as_tensor(self.state).to(device)
             # adding a batch dimension at position 0
-            state_tensor.unsqueeze(0)
+            state_tensor = state_tensor.unsqueeze(0)
             # passing the tensor to our NN
             q_values = net(state_tensor)
             # getting the index(action itself) of the maximum q value
@@ -90,13 +71,16 @@ class Agent:
         # updating the current state
         self.state = next_state
         if is_done or is_truncated:
-            episode_reward += self.total_reward
+            if episode_reward is None:
+                episode_reward = self.total_reward
+            else:
+                episode_reward += self.total_reward
             self._reset()
         return episode_reward
 
 
 def batch_to_tensor(batch: tt.List[Experience], device: torch.device) -> BatchTensors:
-    states, actions, rewards, done_flags,  new_states = [], [], [], []
+    states, actions, rewards, done_flags,  new_states = [], [], [], [], []
     for experience in batch:
         states.append(experience.state)
         actions.append(experience.action)
@@ -113,7 +97,7 @@ def batch_to_tensor(batch: tt.List[Experience], device: torch.device) -> BatchTe
 
 def calculate_loss(batch: tt.List[Experience], net: dqn_model.DQN, target_net: dqn_model.DQN, device: torch.device) -> torch.Tensor:
     # getting the batch as different tensors using batch_to_tensor() method
-    states_t, actions_t, rewards_t, done_flags_t, new_states_t = batch_to_tensor(Experience, device)
+    states_t, actions_t, rewards_t, done_flags_t, new_states_t = batch_to_tensor(batch, device)
     # getting the Q values of the action taken
     # here we also used actions_t.unsqueeze(-1) here because the action_t has shape x for some value x, and gather expects (x,1) as the shape of actions_t
     state_action_values = net(states_t).gather(1, actions_t.unsqueeze(-1))
@@ -127,11 +111,10 @@ def calculate_loss(batch: tt.List[Experience], net: dqn_model.DQN, target_net: d
         next_state_values = next_state_values.detach()
 
     # the Bellman approximation
-    expected_state_action_values = hp.GAMMA * next_state_values + rewards_t
+    expected_state_action_values = (hp.GAMMA * next_state_values + rewards_t).unsqueeze(-1)
     # returning the mean squared error loss
-    return nn.MSELoss(state_action_values, expected_state_action_values)
+    return nn.MSELoss()(state_action_values, expected_state_action_values)
 
 
 
-if __name__ == "__main__":
-    pass
+

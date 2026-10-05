@@ -1,5 +1,5 @@
 import collections
-from dqn_pong import Experience
+from experience import Experience
 import typing as tt
 import numpy as np
 
