@@ -96,7 +96,19 @@ class Agent:
 
 
 def batch_to_tensor(batch: tt.List[Experience], device: torch.device) -> BatchTensors:
-    pass
+    states, actions, rewards, done_flags,  new_states = [], [], [], []
+    for experience in batch:
+        states.append(experience.state)
+        rewards.append(experience.reward)
+        done_flags.append(experience.done_trunc)
+        new_states.append(experience.new_state)
+
+    states_t = torch.as_tensor(np.asarray(states)).to(device)
+    actions_t = torch.as_tensor(actions).to(device)
+    rewards_t = torch.as_tensor(rewards).to(device)
+    done_flags_t = torch.as_tensor(done_flags).to(device)
+    new_states_t = torch.as_tensor(np.asarray(new_states)).to(device)
+    return (states_t, actions_t, rewards_t, done_flags_t, new_states_t)
 
 def calculate_loss():
     pass
