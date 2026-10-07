@@ -14,7 +14,7 @@ import hyperparameters as hp
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-m", "--model", required=True, help="Model file to load")
-    parser.add_argument("-e", "--env", help="Environment name, default name: " + hp.DEFAULT_ENV_NAME)
+    parser.add_argument("-e", "--env", default=hp.DEFAULT_ENV_NAME,help="Environment name, default name: " + hp.DEFAULT_ENV_NAME)
     parser.add_argument("-r", "--record", required=True, help="Directory for video")
     args = parser.parse_args()
 
