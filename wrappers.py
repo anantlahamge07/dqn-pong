@@ -59,8 +59,8 @@ class ImageToPytorch(gym.ObservationWrapper):
         return np.moveaxis(obs, 2, 0)
 
 
-def create_env(env_name: str):
-    env = gym.make(env_name)
+def create_env(env_name: str, **kwargs):
+    env = gym.make(env_name, **kwargs)
     env = atari_wrappers.AtariWrapper(env, clip_reward = False, noop_max = 0)
     env = ImageToPytorch(env)
     env = BufferWrapper(env, n_steps=4)
