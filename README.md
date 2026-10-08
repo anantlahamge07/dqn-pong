@@ -1,17 +1,18 @@
 # DQN Pong
 
-A small Deep Q-Network (DQN) trainer for Atari Pong. It uses PyTorch for the convolutional Q-network, Gymnasium for environment interaction, Stable-Baselines3 Atari preprocessing, and a replay buffer for sampled training transitions.
+A PyTorch Deep Q-Network (DQN) that learns to play Atari Pong through Gymnasium. The project includes a training loop, a convolutional Q-network, experience replay, Atari preprocessing, and a script that runs a saved model while recording a video.
 
 ## How it works
 
-The environment observations are preprocessed and stacked into four frames. The agent selects actions with an epsilon-greedy policy, stores transitions in replay memory, and trains the online network from random batches. A separate target network supplies next-state values. Training stops when the running mean reward exceeds the configured threshold.
+The environment wrapper applies Stable-Baselines3 Atari preprocessing, converts image observations to channel-first format, and stacks four frames. The agent chooses actions with an epsilon-greedy policy and stores each transition in a bounded replay buffer. Once the buffer reaches its warm-up size, the training loop samples random batches and minimizes the Bellman error. A target network supplies next-state values and is synchronized periodically. Training stops when the mean reward over the latest 100 episodes exceeds the configured reward bound.
 
 ## Project files
 
 | File | Purpose |
 | --- | --- |
-| `main.py` | Command-line training entry point, optimization loop, TensorBoard logging, and best-model checkpoint saving. |
-| `dqn_model.py` | Convolutional neural network that estimates Q-values for available actions. |
+| `main.py` | Training entry point, optimization loop, TensorBoard metrics, and best-mean-reward checkpoints. |
+| `pong_play.py` | Loads a checkpoint, plays one episode, prints its reward and action counts, and records video. |
+| `dqn_model.py` | Convolutional neural network that estimates Q-values for each action. |
 | `dqn_pong.py` | Agent interaction, batch conversion, and DQN loss calculation. |
 | `experience.py` | Transition data structure and related type aliases. |
 | `ExperienceBuffer.py` | Bounded replay memory with random sampling. |
@@ -20,37 +21,49 @@ The environment observations are preprocessed and stacked into four frames. The 
 
 ## Requirements and setup
 
-Use Python 3 with PyTorch, Gymnasium, Stable-Baselines3, NumPy, and TensorBoard. An Atari-capable Gymnasium/ALE installation and Pong ROMs are also required. See the [Gymnasium Atari setup guide](https://gymnasium.farama.org/environments/atari/) for Atari installation and ROM details.
+Use Python 3 with PyTorch, Gymnasium's Atari support, Stable-Baselines3, NumPy, and TensorBoard. Atari environments also need the Arcade Learning Environment and Pong ROMs. The exact environment ID can vary with the Gymnasium/ALE version; the default in this project is `PongNoFrameskip-v4`.
 
-Install the Python packages in your active virtual environment:
+Install the dependencies in a virtual environment. For example:
 
 ```bash
-python -m pip install torch gymnasium stable-baselines3 numpy tensorboard
+python -m pip install torch "gymnasium[atari]" stable-baselines3 numpy tensorboard
 ```
 
-The default environment ID is `PongNoFrameskip-v4`. Environment IDs vary between Gymnasium/ALE versions; if this ID is unavailable, pass an Atari environment ID supported by your installation with `--env`.
+Install or make the Atari ROMs available according to the [Gymnasium Atari setup guide](https://gymnasium.farama.org/environments/atari/). If the default environment ID is not registered in your installation, use an Atari Pong ID supported by your installed Gymnasium and ALE packages with `--env`.
 
-## Run training
+There is no dependency lockfile or `requirements.txt` in this repository.
 
-From the project directory, activate the environment containing the dependencies and run:
+## Train
+
+From the project directory, run:
 
 ```bash
 python main.py
 ```
 
-Select a different environment or device with the optional arguments:
+The optional command-line arguments select the environment and PyTorch device:
 
 ```bash
 python main.py --env PongNoFrameskip-v4 --dev cpu
 ```
 
-For a CUDA-capable PyTorch installation, `--dev cuda` selects the GPU. Training runs until the mean reward crosses the configured threshold. Episode metrics are written to TensorBoard, and improving checkpoints are saved in the project directory as `<environment>-best<reward>.dat`.
+Use `--dev cuda` with a CUDA-enabled PyTorch installation to train on an available GPU. Training continues until the latest-100-episode mean reward exceeds `MEAN_REWARD_BOUND`. Episode reward, mean reward, epsilon, and frame speed are logged to TensorBoard. The script writes each new best checkpoint to the project root using the name `<environment>-best<mean-reward-rounded>.dat`.
 
-To view TensorBoard logs, start TensorBoard in a second terminal:
+To inspect the logs in another terminal:
 
 ```bash
 tensorboard --logdir runs
 ```
+
+## Play a saved model and record a video
+
+`pong_play.py` runs one episode using greedy actions and writes a Gymnasium video to the directory passed with `--record`:
+
+```bash
+python pong_play.py --model PongNoFrameskip-v4-best19.dat --record Video
+```
+
+You can also choose the environment with `--env`. The model file must match the network's environment observation shape and action count. The script prints the episode's total reward and action counts when the episode ends.
 
 ## Default settings
 
@@ -66,13 +79,14 @@ Values are defined in `hyperparameters.py`:
 | Learning rate | `0.0001` |
 | Target network sync interval | `1,000` frames |
 | Epsilon schedule | `1.0` to `0.01` over `150,000` frames |
-| Mean reward threshold | `19` |
+| Mean reward threshold | `19` over the latest 100 episodes |
 
-## Current limitations
+## Notes and limitations
 
-- Terminations and time-limit truncations are currently stored together, so the loss treats both as terminal and does not bootstrap from a truncated episode's final observation.
-- The target network is synchronized on the configured frame interval. With the defaults, its first sync coincides with the end of replay warm-up.
-- The project saves model weights but does not yet provide checkpoint loading or a separate evaluation script.
+- The replay buffer stores termination and truncation in one `done_trunc` flag. The loss therefore treats either event as terminal and does not bootstrap from the final observation of a time-limit truncation.
+- The target network starts with its own initial weights and is first synchronized when the frame counter reaches the configured sync interval, provided replay warm-up has completed.
+- Checkpoints contain only the online network weights. The optimizer, replay buffer, frame counter, and training state are not saved, so training cannot be resumed from a checkpoint.
+- `pong_play.py` evaluates one episode and records it; it does not calculate multi-episode evaluation statistics.
 
 ## License
 
