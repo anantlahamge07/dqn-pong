@@ -3,6 +3,7 @@ import gymnasium as gym
 import collections
 import numpy as np
 from stable_baselines3.common import atari_wrappers
+import typing as tt
 
 
 class BufferWrapper(gym.ObservationWrapper):
@@ -20,7 +21,7 @@ class BufferWrapper(gym.ObservationWrapper):
         self.observation_space = new_obs
         self.buffer = collections.deque(maxlen=n_steps)
 
-    def reset(self):
+    def reset(self, seed: tt.Optional[int] = None, options: tt.Optional[dict[str, tt.Any]] = None):
         # initially filling the buffer with the lowest possible values until the last value
         for _ in range(self.buffer.maxlen - 1):
             self.buffer.append(self.env.observation_space.low)
