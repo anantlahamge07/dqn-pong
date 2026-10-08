@@ -63,7 +63,13 @@ tensorboard --logdir runs
 python pong_play.py --model PongNoFrameskip-v4-best19.dat --record Video
 ```
 
-You can also choose the environment with `--env`. The model file must match the network's environment observation shape and action count. The script prints the episode's total reward and action counts when the episode ends.
+To record a different saved training stage, replace the number after `best` in the model filename. For example, use `PongNoFrameskip-v4-best-21.dat` through `PongNoFrameskip-v4-best19.dat` (where `x` ranges from `-21` to `19`) if those checkpoint files are present:
+
+```bash
+python pong_play.py --model PongNoFrameskip-v4-best-8.dat --record Video
+```
+
+Each checkpoint contains the model weights saved at that point in training, so the selected file determines which model plays the episode. You can also choose the environment with `--env`. The model file must match the network's environment observation shape and action count. The script prints the episode's total reward and action counts when the episode ends.
 
 ## Default settings
 
